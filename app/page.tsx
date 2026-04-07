@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shuffle,
@@ -12,85 +12,93 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-const venues = [
-  {
-    name: "Kaiku",
-    area: "Sörnäinen",
-    vibe: ["techno", "club", "late-night", "dance"],
-    price: "€€",
-    note: "Elektroniseen musiikkiin painottuva yökerho.",
-    site: "https://www.kaikuhelsinki.fi/",
-    maps: "https://maps.google.com/?q=Kaiku+Helsinki",
-  },
-  {
-    name: "Siltanen",
-    area: "Sörnäinen",
-    vibe: ["indie", "dj", "dance", "bar"],
-    price: "€",
-    note: "Rento paikka klubi-iltoihin ja illanviettoon.",
-    site: "https://www.siltanen.org/",
-    maps: "https://maps.google.com/?q=Siltanen+Helsinki",
-  },
-  {
-    name: "Teatteri Club",
-    area: "Keskusta",
-    vibe: ["mainstream", "cocktails", "club"],
-    price: "€€€",
-    note: "Keskustan klassikko näyttävään iltaan.",
-    site: "https://www.teatteri.fi/",
-    maps: "https://maps.google.com/?q=Teatteri+Helsinki",
-  },
-  {
-    name: "Kaarle XII",
-    area: "Keskusta",
-    vibe: ["party", "karaoke", "mainstream", "dance"],
-    price: "€€",
-    note: "Tunnettu bilepaikka usealla eri puolella.",
-    site: "https://www.kaarle.fi/",
-    maps: "https://maps.google.com/?q=Kaarle+XII+Helsinki",
-  },
-  {
-    name: "Bar Loose",
-    area: "Kamppi",
-    vibe: ["rock", "late-night", "live", "bar"],
-    price: "€",
-    note: "Rock-henkinen baari keskustan lähellä.",
-    site: "https://barloose.com/",
-    maps: "https://maps.google.com/?q=Bar+Loose+Helsinki",
-  },
-  {
-    name: "Kuudes Linja",
-    area: "Kallio",
-    vibe: ["alternative", "dance", "dj", "late-night"],
-    price: "€",
-    note: "Kallion klassikko indie- ja klubifiilikseen.",
-    site: "https://kuudeslinja.com/",
-    maps: "https://maps.google.com/?q=Kuudes+Linja+Helsinki",
-  },
-];
+const SUPABASE_URL = "https://hdyvkijunirzhrffeblp.supabase.co";
+const SUPABASE_KEY = "sb_publishable_s2dWYa7p3Ci9zYn91UmWcQ_p1ncHfot";
 
-const allAreas = [...new Set(venues.map((v) => v.area))];
-const allVibes = [...new Set(venues.flatMap((v) => v.vibe))];
+type Venue = {
+  id: string;
+  name: string;
+  area: string;
+  description: string;
+  price: string;
+  google_maps_url: string;
+  website_url: string;
+  vibes: string[];
+  active: boolean;
+};
+
+async function fetchPlaces(): Promise<Venue[]> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/places?select=*&active=eq.true`,
+    {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Paikkojen haku epäonnistui");
+  }
+
+  return res.json();
+}
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
 export default function Page() {
-  const [selectedAreas, setSelectedAreas] = useState(allAreas);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
-  const [picked, setPicked] = useState<(typeof venues)[number] | null>(null);
+  const [picked, setPicked] = useState<Venue | null>(null);
   const [spinning, setSpinning] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchPlaces();
+        setVenues(data);
+
+        const areas = [...new Set(data.map((v) => v.area))];
+        setSelectedAreas(areas);
+      } catch (err) {
+        setError("Datan haku Supabasesta epäonnistui.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
+
+  const allAreas = useMemo(
+    () => [...new Set(venues.map((v) => v.area))],
+    [venues]
+  );
+
+  const allVibes = useMemo(
+    () => [...new Set(venues.flatMap((v) => v.vibes || []))],
+    [venues]
+  );
 
   const filtered = useMemo(() => {
     return venues.filter((venue) => {
-      const areaMatch = selectedAreas.includes(venue.area);
+      const areaMatch =
+        selectedAreas.length === 0 || selectedAreas.includes(venue.area);
+
       const vibeMatch =
         selectedVibes.length === 0 ||
-        selectedVibes.some((vibe) => venue.vibe.includes(vibe));
+        selectedVibes.some((vibe) => (venue.vibes || []).includes(vibe));
+
       return areaMatch && vibeMatch;
     });
-  }, [selectedAreas, selectedVibes]);
+  }, [venues, selectedAreas, selectedVibes]);
 
   function toggleArea(area: string) {
     setSelectedAreas((prev) =>
@@ -142,10 +150,17 @@ export default function Page() {
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               onClick={spin}
-              disabled={!filtered.length || spinning}
+              disabled={!filtered.length || spinning || loading}
               className="rounded-2xl px-6 py-4 bg-white text-black font-semibold disabled:opacity-50"
             >
-              {spinning ? "Arvotaan..." : "Arvo illan paikka"}
+              <span className="inline-flex items-center">
+                {spinning ? (
+                  <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <Shuffle className="mr-2 h-5 w-5" />
+                )}
+                {spinning ? "Arvotaan..." : "Arvo illan paikka"}
+              </span>
             </button>
 
             <button
@@ -164,46 +179,54 @@ export default function Page() {
               Suodattimet
             </h2>
 
-            <div className="mb-6">
-              <h3 className="font-semibold mb-3 text-white/85">Alue</h3>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {allAreas.map((area) => (
-                  <label
-                    key={area}
-                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedAreas.includes(area)}
-                      onChange={() => toggleArea(area)}
-                    />
-                    <span>{area}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            {loading ? (
+              <div className="text-white/70">Ladataan paikkoja...</div>
+            ) : error ? (
+              <div className="text-red-300">{error}</div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-3 text-white/85">Alue</h3>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {allAreas.map((area) => (
+                      <label
+                        key={area}
+                        className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedAreas.includes(area)}
+                          onChange={() => toggleArea(area)}
+                        />
+                        <span>{area}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
-            <div>
-              <h3 className="font-semibold mb-3 text-white/85">Fiilis</h3>
-              <div className="flex flex-wrap gap-3">
-                {allVibes.map((vibe) => {
-                  const active = selectedVibes.includes(vibe);
-                  return (
-                    <button
-                      key={vibe}
-                      onClick={() => toggleVibe(vibe)}
-                      className={`rounded-full px-4 py-2 border text-sm ${
-                        active
-                          ? "bg-white text-black border-white"
-                          : "bg-white/5 text-white border-white/10"
-                      }`}
-                    >
-                      {vibe}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                <div>
+                  <h3 className="font-semibold mb-3 text-white/85">Fiilis</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {allVibes.map((vibe) => {
+                      const active = selectedVibes.includes(vibe);
+                      return (
+                        <button
+                          key={vibe}
+                          onClick={() => toggleVibe(vibe)}
+                          className={`rounded-full px-4 py-2 border text-sm ${
+                            active
+                              ? "bg-white text-black border-white"
+                              : "bg-white/5 text-white border-white/10"
+                          }`}
+                        >
+                          {vibe}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
           </section>
 
           <div className="space-y-6">
@@ -219,7 +242,7 @@ export default function Page() {
                     exit={{ opacity: 0, scale: 0.96 }}
                     className="rounded-3xl border border-dashed border-white/20 bg-black/20 p-8 text-center"
                   >
-                    <RefreshCw className="w-10 h-10 mx-auto mb-4 animate-spin" />
+                    <div className="text-6xl mb-4">🎰</div>
                     <p className="text-2xl font-bold">Rullat pyörivät...</p>
                   </motion.div>
                 ) : !picked ? (
@@ -238,7 +261,7 @@ export default function Page() {
                   </motion.div>
                 ) : (
                   <motion.div
-                    key={picked.name}
+                    key={picked.id}
                     initial={{ opacity: 0, y: 18 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -18 }}
@@ -263,11 +286,11 @@ export default function Page() {
                     </div>
 
                     <p className="text-lg text-white/80 leading-relaxed mb-5">
-                      {picked.note}
+                      {picked.description}
                     </p>
 
                     <div className="flex flex-wrap gap-2 mb-5">
-                      {picked.vibe.map((tag) => (
+                      {(picked.vibes || []).map((tag) => (
                         <span
                           key={tag}
                           className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-sm"
@@ -279,7 +302,7 @@ export default function Page() {
 
                     <div className="flex flex-wrap gap-3">
                       <a
-                        href={picked.maps}
+                        href={picked.google_maps_url}
                         target="_blank"
                         rel="noreferrer"
                         className="rounded-2xl px-4 py-3 bg-white text-black font-semibold inline-flex items-center"
@@ -289,7 +312,7 @@ export default function Page() {
                       </a>
 
                       <a
-                        href={picked.site}
+                        href={picked.website_url}
                         target="_blank"
                         rel="noreferrer"
                         className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 inline-flex items-center"
@@ -306,7 +329,9 @@ export default function Page() {
             <section className="rounded-[28px] bg-white/5 border border-white/10 p-6 shadow-xl">
               <h2 className="text-2xl font-bold mb-6">Mukana arvonnassa</h2>
 
-              {!filtered.length ? (
+              {loading ? (
+                <div className="text-white/70">Ladataan...</div>
+              ) : filtered.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 p-6 text-white/70">
                   Näillä suodattimilla ei löytynyt paikkoja.
                 </div>
@@ -314,13 +339,15 @@ export default function Page() {
                 <div className="grid sm:grid-cols-2 gap-3">
                   {filtered.map((venue) => (
                     <div
-                      key={venue.name}
+                      key={venue.id}
                       className="rounded-2xl border border-white/10 bg-black/20 p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="font-semibold text-base">{venue.name}</div>
-                          <div className="text-sm text-white/60 mt-1">{venue.area}</div>
+                          <div className="text-sm text-white/60 mt-1">
+                            {venue.area}
+                          </div>
                         </div>
                         <div className="text-sm text-white/70">{venue.price}</div>
                       </div>
