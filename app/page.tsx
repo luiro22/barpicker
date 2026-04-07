@@ -64,7 +64,7 @@ function FilterChip({
   return (
     <button
       onClick={onClick}
-      className={`rounded-full px-4 py-2 border text-sm transition ${
+      className={`rounded-full px-4 py-2.5 border text-sm transition ${
         active
           ? "bg-white text-black border-white"
           : "bg-white/5 text-white border-white/10 hover:bg-white/10"
@@ -83,14 +83,14 @@ function PickerStage({
   displayText: string;
 }) {
   return (
-    <div className="relative rounded-[32px] border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-5 md:p-8 shadow-2xl overflow-hidden">
+    <div className="relative rounded-[28px] md:rounded-[32px] border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-4 md:p-8 shadow-2xl overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.12),_transparent_45%)] pointer-events-none" />
       <div className="relative">
-        <div className="text-center text-xs uppercase tracking-[0.25em] text-white/50 mb-4">
+        <div className="text-center text-[11px] uppercase tracking-[0.25em] text-white/50 mb-4">
           Tonight’s pick
         </div>
 
-        <div className="mx-auto max-w-2xl rounded-[28px] border border-white/10 bg-black/30 px-6 py-10 md:px-10 md:py-14">
+        <div className="mx-auto max-w-3xl rounded-[24px] md:rounded-[28px] border border-white/10 bg-black/35 px-4 py-8 sm:px-6 sm:py-10 md:px-10 md:py-14">
           <AnimatePresence mode="wait">
             <motion.div
               key={displayText + String(spinning)}
@@ -100,19 +100,19 @@ function PickerStage({
               transition={{ duration: 0.22 }}
               className="text-center"
             >
-              <div className="text-sm uppercase tracking-[0.2em] text-white/40 mb-4">
+              <div className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-white/40 mb-3">
                 {spinning ? "Arvotaan..." : "Valinta"}
               </div>
-              <div className="text-4xl md:text-6xl font-black tracking-tight leading-none break-words">
+              <div className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-[0.95] break-words">
                 {displayText}
               </div>
             </motion.div>
           </AnimatePresence>
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-3">
+        <div className="mt-5 flex items-center justify-center gap-3">
           <div className="h-2 w-2 rounded-full bg-white/40" />
-          <div className="h-2 w-2 rounded-full bg-white/70" />
+          <div className="h-2 w-2 rounded-full bg-white/80" />
           <div className="h-2 w-2 rounded-full bg-white/40" />
         </div>
       </div>
@@ -136,7 +136,6 @@ export default function Page() {
       try {
         const data = await fetchPlaces();
         setVenues(data);
-
         const areas = [...new Set(data.map((v) => v.area))];
         setSelectedAreas(areas);
       } catch {
@@ -154,9 +153,7 @@ export default function Page() {
     if (!raw) return;
     try {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        setFavoriteIds(parsed);
-      }
+      if (Array.isArray(parsed)) setFavoriteIds(parsed);
     } catch {}
   }, []);
 
@@ -197,11 +194,7 @@ export default function Page() {
 
   useEffect(() => {
     if (!spinning && !picked) {
-      if (filtered.length > 0) {
-        setDisplayText("Minne tänään?");
-      } else {
-        setDisplayText("Ei tuloksia");
-      }
+      setDisplayText(filtered.length > 0 ? "Minne tänään?" : "Ei tuloksia");
     }
   }, [filtered, spinning, picked]);
 
@@ -306,30 +299,30 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_30%),linear-gradient(135deg,#09090b,#111827,#000000)] text-white">
-      <div className="max-w-6xl mx-auto px-4 py-6 md:px-8 md:py-10 space-y-6">
-        <section className="rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-xl p-5 md:p-8 shadow-2xl">
+      <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6 md:px-8 md:py-10 space-y-5 md:space-y-6 pb-24">
+        <section className="rounded-[28px] md:rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-xl p-4 sm:p-5 md:p-8 shadow-2xl">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-white/70 mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-white/70 mb-4">
               <Sparkles className="h-3.5 w-3.5" />
               Barpicker
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none max-w-4xl mx-auto">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-[0.95] max-w-4xl mx-auto">
               Arvo illan baari tai yökerho Helsingistä
             </h1>
 
-            <p className="mt-4 max-w-2xl mx-auto text-white/75 text-base md:text-lg leading-relaxed">
+            <p className="mt-4 max-w-2xl mx-auto text-white/75 text-sm sm:text-base md:text-lg leading-relaxed">
               Barpicker valitsee illan paikan puolestasi. Rajaa alueen tai
               fiiliksen mukaan tai anna sattuman päättää.
             </p>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
               <button
                 onClick={spin}
                 disabled={!filtered.length || spinning || loading}
-                className="rounded-2xl px-6 py-4 bg-white text-black font-semibold disabled:opacity-50"
+                className="rounded-2xl px-5 py-4 bg-white text-black font-semibold disabled:opacity-50 min-h-[56px]"
               >
-                <span className="inline-flex items-center">
+                <span className="inline-flex items-center justify-center">
                   {spinning ? (
                     <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
                   ) : (
@@ -342,9 +335,9 @@ export default function Page() {
               <button
                 onClick={surpriseMe}
                 disabled={loading || allAreas.length === 0}
-                className="rounded-2xl px-6 py-4 bg-white/10 border border-white/10 hover:bg-white/15 transition"
+                className="rounded-2xl px-5 py-4 bg-white/10 border border-white/10 hover:bg-white/15 transition min-h-[56px]"
               >
-                <span className="inline-flex items-center">
+                <span className="inline-flex items-center justify-center">
                   <WandSparkles className="mr-2 h-5 w-5" />
                   Surprise me
                 </span>
@@ -352,7 +345,7 @@ export default function Page() {
 
               <button
                 onClick={resetFilters}
-                className="rounded-2xl px-6 py-4 bg-white/10 border border-white/10 hover:bg-white/15 transition"
+                className="rounded-2xl px-5 py-4 bg-white/10 border border-white/10 hover:bg-white/15 transition min-h-[56px]"
               >
                 Nollaa suodattimet
               </button>
@@ -360,8 +353,8 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="rounded-[28px] bg-white/5 border border-white/10 p-6 shadow-xl">
-          <h2 className="text-2xl font-bold flex items-center gap-2 mb-6">
+        <section className="rounded-[24px] md:rounded-[28px] bg-white/5 border border-white/10 p-4 sm:p-5 md:p-6 shadow-xl">
+          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 mb-5">
             <Filter className="w-5 h-5" />
             Suodattimet
           </h2>
@@ -371,16 +364,16 @@ export default function Page() {
           ) : error ? (
             <div className="text-red-300">{error}</div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <h3 className="font-semibold text-white/85">Alue</h3>
-                  <div className="text-sm text-white/50">
+                  <div className="text-xs sm:text-sm text-white/50">
                     {selectedAreas.length}/{allAreas.length} valittu
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2.5 sm:gap-3">
                   {allAreas.map((area) => (
                     <FilterChip
                       key={area}
@@ -396,12 +389,12 @@ export default function Page() {
               <div>
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <h3 className="font-semibold text-white/85">Fiilis</h3>
-                  <div className="text-sm text-white/50">
+                  <div className="text-xs sm:text-sm text-white/50">
                     {selectedVibes.length} valittu
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2.5 sm:gap-3">
                   {allVibes.map((vibe) => (
                     <FilterChip
                       key={vibe}
@@ -419,8 +412,8 @@ export default function Page() {
 
         <PickerStage spinning={spinning} displayText={displayText} />
 
-        <section className="rounded-[28px] bg-white/5 border border-white/10 p-6 shadow-xl min-h-[320px]">
-          <h2 className="text-2xl font-bold mb-6">Arvonnan tulos</h2>
+        <section className="rounded-[24px] md:rounded-[28px] bg-white/5 border border-white/10 p-4 sm:p-5 md:p-6 shadow-xl min-h-[300px]">
+          <h2 className="text-xl md:text-2xl font-bold mb-5">Arvonnan tulos</h2>
 
           <AnimatePresence mode="wait">
             {spinning ? (
@@ -429,10 +422,10 @@ export default function Page() {
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
-                className="rounded-3xl border border-dashed border-white/20 bg-black/20 p-8 text-center"
+                className="rounded-3xl border border-dashed border-white/20 bg-black/20 p-6 sm:p-8 text-center"
               >
-                <div className="text-6xl mb-4">🎰</div>
-                <p className="text-2xl font-bold">Rullat pyörivät...</p>
+                <div className="text-5xl sm:text-6xl mb-4">🎰</div>
+                <p className="text-xl sm:text-2xl font-bold">Rullat pyörivät...</p>
                 <p className="text-white/60 mt-2">
                   Valitaan illalle sopiva mesta.
                 </p>
@@ -443,10 +436,10 @@ export default function Page() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="rounded-3xl border border-dashed border-white/20 bg-black/20 p-8 text-center"
+                className="rounded-3xl border border-dashed border-white/20 bg-black/20 p-6 sm:p-8 text-center"
               >
                 <Music4 className="w-12 h-12 mx-auto mb-4 text-white/70" />
-                <p className="text-2xl font-bold">Valmis iltaa varten</p>
+                <p className="text-xl sm:text-2xl font-bold">Valmis iltaa varten</p>
                 <p className="text-white/60 mt-2">
                   Paina nappia ja anna sattuman päättää.
                 </p>
@@ -457,10 +450,10 @@ export default function Page() {
                 initial={{ opacity: 0, y: 18, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -18, scale: 0.98 }}
-                className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 p-6 md:p-8"
+                className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 p-5 sm:p-6 md:p-8"
               >
                 <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="text-sm uppercase tracking-[0.25em] text-white/50">
+                  <div className="text-[11px] sm:text-sm uppercase tracking-[0.25em] text-white/50">
                     Tämän illan valinta
                   </div>
                   <button
@@ -472,11 +465,13 @@ export default function Page() {
                     }`}
                     aria-label="Tallenna suosikiksi"
                   >
-                    <Heart className={`h-4 w-4 ${isFavorite(picked.id) ? "fill-current" : ""}`} />
+                    <Heart
+                      className={`h-4 w-4 ${isFavorite(picked.id) ? "fill-current" : ""}`}
+                    />
                   </button>
                 </div>
 
-                <h2 className="text-5xl md:text-6xl font-black tracking-tight mb-4">
+                <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[0.95] mb-4">
                   {picked.name}
                 </h2>
 
@@ -490,7 +485,7 @@ export default function Page() {
                   </span>
                 </div>
 
-                <p className="text-lg text-white/80 leading-relaxed mb-5 max-w-2xl">
+                <p className="text-base sm:text-lg text-white/80 leading-relaxed mb-5 max-w-2xl">
                   {picked.description}
                 </p>
 
@@ -505,32 +500,36 @@ export default function Page() {
                   ))}
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <a
                     href={picked.google_maps_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-2xl px-4 py-3 bg-white text-black font-semibold inline-flex items-center"
+                    className="rounded-2xl px-4 py-3 bg-white text-black font-semibold inline-flex items-center justify-center min-h-[52px]"
                   >
                     <MapPin className="mr-2 h-4 w-4" />
                     Avaa Google Maps
                   </a>
 
-                  {picked.website_url && (
+                  {picked.website_url ? (
                     <a
                       href={picked.website_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 inline-flex items-center hover:bg-white/15 transition"
+                      className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 inline-flex items-center justify-center hover:bg-white/15 transition min-h-[52px]"
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
                       Paikan sivu
                     </a>
+                  ) : (
+                    <div className="rounded-2xl px-4 py-3 bg-white/5 border border-white/10 inline-flex items-center justify-center text-white/45 min-h-[52px]">
+                      Ei sivulinkkiä
+                    </div>
                   )}
 
                   <button
                     onClick={spin}
-                    className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 hover:bg-white/15 transition"
+                    className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 hover:bg-white/15 transition min-h-[52px]"
                   >
                     Spin again
                   </button>
@@ -540,10 +539,12 @@ export default function Page() {
           </AnimatePresence>
         </section>
 
-        <section className="rounded-[28px] bg-white/5 border border-white/10 p-6 shadow-xl">
-          <div className="flex items-center justify-between gap-3 mb-6">
-            <h2 className="text-2xl font-bold">Suosikit</h2>
-            <div className="text-sm text-white/50">{favorites.length} tallennettu</div>
+        <section className="rounded-[24px] md:rounded-[28px] bg-white/5 border border-white/10 p-4 sm:p-5 md:p-6 shadow-xl">
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <h2 className="text-xl md:text-2xl font-bold">Suosikit</h2>
+            <div className="text-xs sm:text-sm text-white/50">
+              {favorites.length} tallennettu
+            </div>
           </div>
 
           {favorites.length === 0 ? (
@@ -582,27 +583,31 @@ export default function Page() {
                     ))}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-4 grid grid-cols-2 gap-2">
                     <a
                       href={venue.google_maps_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-xl px-3 py-2 bg-white text-black text-sm font-semibold inline-flex items-center"
+                      className="rounded-xl px-3 py-2 bg-white text-black text-sm font-semibold inline-flex items-center justify-center"
                     >
                       <MapPin className="mr-2 h-4 w-4" />
                       Maps
                     </a>
 
-                    {venue.website_url && (
+                    {venue.website_url ? (
                       <a
                         href={venue.website_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-xl px-3 py-2 bg-white/10 border border-white/10 text-sm inline-flex items-center hover:bg-white/15 transition"
+                        className="rounded-xl px-3 py-2 bg-white/10 border border-white/10 text-sm inline-flex items-center justify-center hover:bg-white/15 transition"
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />
                         Sivu
                       </a>
+                    ) : (
+                      <div className="rounded-xl px-3 py-2 bg-white/5 border border-white/10 text-sm inline-flex items-center justify-center text-white/45">
+                        Ei sivua
+                      </div>
                     )}
                   </div>
                 </div>
@@ -611,8 +616,8 @@ export default function Page() {
           )}
         </section>
 
-        <section className="rounded-[28px] bg-white/5 border border-white/10 p-6 shadow-xl">
-          <h2 className="text-2xl font-bold mb-6">Mukana arvonnassa</h2>
+        <section className="rounded-[24px] md:rounded-[28px] bg-white/5 border border-white/10 p-4 sm:p-5 md:p-6 shadow-xl">
+          <h2 className="text-xl md:text-2xl font-bold mb-5">Mukana arvonnassa</h2>
 
           {loading ? (
             <div className="text-white/70">Ladataan...</div>
@@ -629,12 +634,8 @@ export default function Page() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-semibold text-base">
-                        {venue.name}
-                      </div>
-                      <div className="text-sm text-white/60 mt-1">
-                        {venue.area}
-                      </div>
+                      <div className="font-semibold text-base">{venue.name}</div>
+                      <div className="text-sm text-white/60 mt-1">{venue.area}</div>
                     </div>
                     <div className="text-sm text-white/70">{venue.price}</div>
                   </div>
