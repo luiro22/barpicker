@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ExternalLink,
   WandSparkles,
+  Heart,
 } from "lucide-react";
 
 const SUPABASE_URL = "https://hdyvkijunirzhrffeblp.supabase.co";
@@ -23,7 +24,7 @@ type Venue = {
   description: string;
   price: string;
   google_maps_url: string;
-  website_url: string;
+  website_url: string | null;
   vibes: string[];
   active: boolean;
 };
@@ -128,6 +129,7 @@ export default function Page() {
   const [picked, setPicked] = useState<Venue | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [displayText, setDisplayText] = useState("Barpicker");
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -146,6 +148,24 @@ export default function Page() {
 
     load();
   }, []);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem("barpicker-favorites");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setFavoriteIds(parsed);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      "barpicker-favorites",
+      JSON.stringify(favoriteIds)
+    );
+  }, [favoriteIds]);
 
   const allAreas = useMemo(
     () => [...new Set(venues.map((v) => v.area))],
@@ -169,6 +189,11 @@ export default function Page() {
       return areaMatch && vibeMatch;
     });
   }, [venues, selectedAreas, selectedVibes]);
+
+  const favorites = useMemo(
+    () => venues.filter((venue) => favoriteIds.includes(venue.id)),
+    [venues, favoriteIds]
+  );
 
   useEffect(() => {
     if (!spinning && !picked) {
@@ -201,48 +226,48 @@ export default function Page() {
     setDisplayText("Minne tänään?");
   }
 
- function surpriseMe() {
-  if (!venues.length) return;
+  function surpriseMe() {
+    if (!venues.length) return;
 
-  const validCombos: { area: string; vibe: string; matches: Venue[] }[] = [];
+    const validCombos: { area: string; vibe: string; matches: Venue[] }[] = [];
 
-  for (const area of allAreas) {
-    for (const vibe of allVibes) {
-      const matches = venues.filter((venue) => {
-        return venue.area === area && (venue.vibes || []).includes(vibe);
-      });
+    for (const area of allAreas) {
+      for (const vibe of allVibes) {
+        const matches = venues.filter((venue) => {
+          return venue.area === area && (venue.vibes || []).includes(vibe);
+        });
 
-      if (matches.length > 0) {
-        validCombos.push({ area, vibe, matches });
+        if (matches.length > 0) {
+          validCombos.push({ area, vibe, matches });
+        }
       }
     }
+
+    if (validCombos.length === 0) return;
+
+    const combo = pickRandom(validCombos);
+
+    setSelectedAreas([combo.area]);
+    setSelectedVibes([combo.vibe]);
+    setPicked(null);
+    setSpinning(true);
+
+    const pool = combo.matches.map((v) => v.name);
+    let tick = 0;
+
+    const interval = window.setInterval(() => {
+      setDisplayText(pool[tick % pool.length]);
+      tick += 1;
+    }, 90);
+
+    window.setTimeout(() => {
+      window.clearInterval(interval);
+      const winner = pickRandom(combo.matches);
+      setPicked(winner);
+      setDisplayText(winner.name);
+      setSpinning(false);
+    }, 1700);
   }
-
-  if (validCombos.length === 0) return;
-
-  const combo = pickRandom(validCombos);
-
-  setSelectedAreas([combo.area]);
-  setSelectedVibes([combo.vibe]);
-  setPicked(null);
-  setSpinning(true);
-
-  const pool = combo.matches.map((v) => v.name);
-  let tick = 0;
-
-  const interval = window.setInterval(() => {
-    setDisplayText(pool[tick % pool.length]);
-    tick += 1;
-  }, 90);
-
-  window.setTimeout(() => {
-    window.clearInterval(interval);
-    const winner = pickRandom(combo.matches);
-    setPicked(winner);
-    setDisplayText(winner.name);
-    setSpinning(false);
-  }, 1700);
-}
 
   function spin() {
     if (!filtered.length || spinning) return;
@@ -265,6 +290,18 @@ export default function Page() {
       setDisplayText(winner.name);
       setSpinning(false);
     }, 1700);
+  }
+
+  function toggleFavorite(venueId: string) {
+    setFavoriteIds((prev) =>
+      prev.includes(venueId)
+        ? prev.filter((id) => id !== venueId)
+        : [...prev, venueId]
+    );
+  }
+
+  function isFavorite(venueId: string) {
+    return favoriteIds.includes(venueId);
   }
 
   return (
@@ -422,8 +459,21 @@ export default function Page() {
                 exit={{ opacity: 0, y: -18, scale: 0.98 }}
                 className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 p-6 md:p-8"
               >
-                <div className="text-sm uppercase tracking-[0.25em] text-white/50 mb-3">
-                  Tämän illan valinta
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="text-sm uppercase tracking-[0.25em] text-white/50">
+                    Tämän illan valinta
+                  </div>
+                  <button
+                    onClick={() => toggleFavorite(picked.id)}
+                    className={`rounded-full border px-3 py-2 transition ${
+                      isFavorite(picked.id)
+                        ? "border-white bg-white text-black"
+                        : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    }`}
+                    aria-label="Tallenna suosikiksi"
+                  >
+                    <Heart className={`h-4 w-4 ${isFavorite(picked.id) ? "fill-current" : ""}`} />
+                  </button>
                 </div>
 
                 <h2 className="text-5xl md:text-6xl font-black tracking-tight mb-4">
@@ -466,15 +516,17 @@ export default function Page() {
                     Avaa Google Maps
                   </a>
 
-                  <a
-                    href={picked.website_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 inline-flex items-center hover:bg-white/15 transition"
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Paikan sivu
-                  </a>
+                  {picked.website_url && (
+                    <a
+                      href={picked.website_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 inline-flex items-center hover:bg-white/15 transition"
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Paikan sivu
+                    </a>
+                  )}
 
                   <button
                     onClick={spin}
@@ -486,6 +538,77 @@ export default function Page() {
               </motion.div>
             )}
           </AnimatePresence>
+        </section>
+
+        <section className="rounded-[28px] bg-white/5 border border-white/10 p-6 shadow-xl">
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <h2 className="text-2xl font-bold">Suosikit</h2>
+            <div className="text-sm text-white/50">{favorites.length} tallennettu</div>
+          </div>
+
+          {favorites.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 p-6 text-white/70">
+              Et ole vielä tallentanut suosikkeja. Paina sydäntä voittajakortissa.
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {favorites.map((venue) => (
+                <div
+                  key={venue.id}
+                  className="rounded-2xl border border-white/10 bg-black/20 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-base">{venue.name}</div>
+                      <div className="text-sm text-white/60 mt-1">{venue.area}</div>
+                    </div>
+                    <button
+                      onClick={() => toggleFavorite(venue.id)}
+                      className="rounded-full border border-white/10 bg-white/5 p-2 hover:bg-white/10 transition"
+                      aria-label="Poista suosikeista"
+                    >
+                      <Heart className="h-4 w-4 fill-current" />
+                    </button>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(venue.vibes || []).slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-white/10 border border-white/10 px-2.5 py-1 text-xs"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <a
+                      href={venue.google_maps_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-xl px-3 py-2 bg-white text-black text-sm font-semibold inline-flex items-center"
+                    >
+                      <MapPin className="mr-2 h-4 w-4" />
+                      Maps
+                    </a>
+
+                    {venue.website_url && (
+                      <a
+                        href={venue.website_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-xl px-3 py-2 bg-white/10 border border-white/10 text-sm inline-flex items-center hover:bg-white/15 transition"
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Sivu
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="rounded-[28px] bg-white/5 border border-white/10 p-6 shadow-xl">
