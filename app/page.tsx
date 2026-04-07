@@ -12,6 +12,7 @@ import {
   ExternalLink,
   WandSparkles,
   Heart,
+  Share2,
 } from "lucide-react";
 
 const SUPABASE_URL = "https://hdyvkijunirzhrffeblp.supabase.co";
@@ -130,7 +131,8 @@ export default function Page() {
   const [spinning, setSpinning] = useState(false);
   const [displayText, setDisplayText] = useState("Barpicker");
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-
+  const [shareMessage, setShareMessage] = useState("");
+  
   useEffect(() => {
     async function load() {
       try {
@@ -296,6 +298,31 @@ export default function Page() {
   function isFavorite(venueId: string) {
     return favoriteIds.includes(venueId);
   }
+
+async function sharePickedVenue() {
+  if (!picked) return;
+
+  const text = `Barpicker valitsi meille: ${picked.name} (${picked.area}) 🔥`;
+  const url = "https://barpicker.app";
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: "Barpicker",
+        text,
+        url,
+      });
+      return;
+    }
+
+    await navigator.clipboard.writeText(`${text} ${url}`);
+    setShareMessage("Valinta kopioitu! 🔥");
+    setTimeout(() => setShareMessage(""), 2000);
+  } catch {
+    setShareMessage("Jaa kavereille 👀");
+    setTimeout(() => setShareMessage(""), 2000);
+  }
+}
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_30%),linear-gradient(135deg,#09090b,#111827,#000000)] text-white">
@@ -486,8 +513,29 @@ export default function Page() {
                 </div>
 
                 <p className="text-base sm:text-lg text-white/80 leading-relaxed mb-5 max-w-2xl">
-                  {picked.description}
-                </p>
+  {picked.description}
+</p>
+
+<div className="mb-5 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+  <iframe
+    title={`Kartta: ${picked.name}`}
+    src={picked.google_maps_url.replace("https://maps.google.com/?q=", "https://www.google.com/maps?q=") + "&output=embed"}
+    className="w-full h-[220px] md:h-[280px] border-0"
+    loading="lazy"
+    referrerPolicy="no-referrer-when-downgrade"
+  />
+</div>
+
+<div className="flex flex-wrap gap-2 mb-5">
+  {(picked.vibes || []).map((tag) => (
+    <span
+      key={tag}
+      className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-sm"
+    >
+      {tag}
+    </span>
+  ))}
+</div>
 
                 <div className="flex flex-wrap gap-2 mb-5">
                   {(picked.vibes || []).map((tag) => (
@@ -500,40 +548,55 @@ export default function Page() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <a
-                    href={picked.google_maps_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-2xl px-4 py-3 bg-white text-black font-semibold inline-flex items-center justify-center min-h-[52px]"
-                  >
-                    <MapPin className="mr-2 h-4 w-4" />
-                    Avaa Google Maps
-                  </a>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+  <a
+    href={picked.google_maps_url}
+    target="_blank"
+    rel="noreferrer"
+    className="rounded-2xl px-4 py-3 bg-white text-black font-semibold inline-flex items-center justify-center min-h-[52px]"
+  >
+    <MapPin className="mr-2 h-4 w-4" />
+    Avaa Google Maps
+  </a>
 
-                  {picked.website_url ? (
-                    <a
-                      href={picked.website_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 inline-flex items-center justify-center hover:bg-white/15 transition min-h-[52px]"
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Paikan sivu
-                    </a>
-                  ) : (
-                    <div className="rounded-2xl px-4 py-3 bg-white/5 border border-white/10 inline-flex items-center justify-center text-white/45 min-h-[52px]">
-                      Ei sivulinkkiä
-                    </div>
-                  )}
+  {picked.website_url ? (
+    <a
+      href={picked.website_url}
+      target="_blank"
+      rel="noreferrer"
+      className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 inline-flex items-center justify-center hover:bg-white/15 transition min-h-[52px]"
+    >
+      <ExternalLink className="mr-2 h-4 w-4" />
+      Paikan sivu
+    </a>
+  ) : (
+    <div className="rounded-2xl px-4 py-3 bg-white/5 border border-white/10 inline-flex items-center justify-center text-white/45 min-h-[52px]">
+      Ei sivulinkkiä
+    </div>
+  )}
 
-                  <button
-                    onClick={spin}
-                    className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 hover:bg-white/15 transition min-h-[52px]"
-                  >
-                    Spin again
-                  </button>
-                </div>
+  <button
+    onClick={sharePickedVenue}
+    className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 hover:bg-white/15 transition min-h-[52px]"
+  >
+    <span className="inline-flex items-center justify-center">
+      <Share2 className="mr-2 h-4 w-4" />
+      Jaa valinta
+    </span>
+  </button>
+
+  <button
+    onClick={spin}
+    className="rounded-2xl px-4 py-3 bg-white/10 border border-white/10 hover:bg-white/15 transition min-h-[52px]"
+  >
+    Spin again
+  </button>
+</div>
+{shareMessage && (
+  <div className="mt-4 text-sm text-white/65 text-center">
+    {shareMessage}
+  </div>
+)}
               </motion.div>
             )}
           </AnimatePresence>
